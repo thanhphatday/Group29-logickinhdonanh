@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinMart+ Fresh Intelligence — Waste Analysis Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg-base:       #0a0e1a;
+  --bg-surface:    #111827;
+  --bg-raised:     #1a2235;
+  --bg-hover:      #1f2d45;
+  --border:        rgba(255,255,255,0.07);
+  --border-accent: rgba(255,255,255,0.14);
+
+  --teal:          #00d4aa;
+  --teal-dim:      rgba(0,212,170,0.12);
+  --teal-glow:     rgba(0,212,170,0.25);
+  --coral:         #ff6b6b;
+  --coral-dim:     rgba(255,107,107,0.12);
+  --amber:         #f59e0b;
+  --amber-dim:     rgba(245,158,11,0.12);
+  --blue:          #3b82f6;
+  --blue-dim:      rgba(59,130,246,0.12);
+
+  --text-primary:  #f0f4ff;
+  --text-secondary:#8892a4;
+  --text-muted:    #4a5568;
+
+  --font-body:     'DM Sans', sans-serif;
+  --font-mono:     'DM Mono', monospace;
+  --font-display:  'Fraunces', serif;
+
+  --sidebar-w:     220px;
+  --radius:        10px;
+  --radius-lg:     16px;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  display: flex;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 99px; }
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100;
+  transition: transform .3s ease;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-glow);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}
+.logo-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.5;transform:scale(.8)}
+}
+.logo-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--teal);
+  letter-spacing: .06em;
+}
+.sidebar-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.sidebar-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  font-family: var(--font-mono);
+}
+
+.nav-section {
+  padding: 16px 12px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  margin: 1px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all .15s ease;
+  position: relative;
+  border: 1px solid transparent;
+}
+.nav-item:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+.nav-item.active {
+  background: var(--teal-dim);
+  border-color: var(--teal-glow);
+  color: var(--teal);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 25%; bottom: 25%;
+  width: 3px;
+  background: var(--teal);
+  border-radius: 0 2px 2px 0;
+}
+.nav-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--coral-dim);
+  color: var(--coral);
+}
+.nav-badge.green {
+  background: var(--teal-dim);
+  color: var(--teal);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.data-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.data-tag span { color: var(--teal); }
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════ */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10,14,26,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px;
+}
+.hamburger span {
+  display: block;
+  width: 20px; height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: .3s;
+}
+.page-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.page-breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tag-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.tag-pill.live {
+  background: var(--teal-dim);
+  border-color: var(--teal-glow);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tag-pill.live::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-dot 2s infinite;
+}
+
+.content {
+  padding: 28px;
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════
+   PANELS
+═══════════════════════════════════════════ */
+.panel { display: none; animation: fadeUp .35s ease; }
+.panel.active { display: block; }
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ═══════════════════════════════════════════
+   SECTION HEADER
+═══════════════════════════════════════════ */
+.section-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--teal);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.section-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  max-width: 680px;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════
+   KPI GRID
+═══════════════════════════════════════════ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.kpi-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-1px);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--teal);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.kpi-card:hover::before { opacity: 1; }
+.kpi-card.danger::before { background: var(--coral); opacity: 1; }
+.kpi-card.warning::before { background: var(--amber); opacity: 1; }
+.kpi-card.good::before { background: var(--teal); opacity: 1; }
+.kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: .04em;
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kpi-value.danger { color: var(--coral); }
+.kpi-value.warning { color: var(--amber); }
+.kpi-value.good { color: var(--teal); }
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.kpi-delta {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.kpi-delta.up { background: var(--coral-dim); color: var(--coral); }
+.kpi-delta.dn { background: var(--teal-dim); color: var(--teal); }
+
+/* ═══════════════════════════════════════════
+   CHART CARDS
+═══════════════════════════════════════════ */
+.chart-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.chart-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.chart-grid-65 {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color .2s;
+}
+.chart-card:hover { border-color: var(--border-accent); }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+.chart-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.chart-wrap { position: relative; }
+
+/* ═══════════════════════════════════════════
+   INSIGHT CALLOUT
+═══════════════════════════════════════════ */
+.insight {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--coral);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.insight.teal { border-left-color: var(--teal); }
+.insight.amber { border-left-color: var(--amber); }
+.insight-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--coral);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.insight.teal .insight-label { color: var(--teal); }
+.insight.amber .insight-label { color: var(--amber); }
+.insight-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+.insight-text strong { color: var(--text-primary); font-weight: 500; }
+
+/* ═══════════════════════════════════════════
+   LEGEND
+═══════════════════════════════════════════ */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════
+   HEATMAP TABLE
+═══════════════════════════════════════════ */
+.hm-wrap { overflow-x: auto; margin-top: 4px; }
+.hm {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+}
+.hm th {
+  padding: 6px 8px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-weight: 400;
+}
+.hm th.row-h { text-align: left; min-width: 140px; }
+.hm td {
+  padding: 5px 8px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hm td.row-lbl {
+  text-align: left;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  background: var(--bg-surface);
+}
+
+/* ═══════════════════════════════════════════
+   MONITORING TABLE
+═══════════════════════════════════════════ */
+.mon-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mon-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+.mon-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.mon-table tr:hover td { background: var(--bg-raised); }
+.mon-table td:first-child { color: var(--text-primary); font-weight: 500; }
+.status-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.val-mono { font-family: var(--font-mono); }
+.val-danger { color: var(--coral); }
+.val-warning { color: var(--amber); }
+.val-good { color: var(--teal); }
+
+/* ═══════════════════════════════════════════
+   ACTION PLAN
+═══════════════════════════════════════════ */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-row {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color .2s;
+}
+.action-row:hover { border-color: var(--border-accent); }
+.priority-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  text-align: center;
+  line-height: 1.3;
+}
+.p1 { background: var(--coral-dim); color: var(--coral); border: 1px solid rgba(255,107,107,0.2); }
+.p2 { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+.p3 { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,212,170,0.2); }
+.action-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+.action-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.action-saving { font-family: var(--font-mono); font-size: 13px; color: var(--teal); white-space: nowrap; }
+.action-effort { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+/* ═══════════════════════════════════════════
+   STORE BARS
+═══════════════════════════════════════════ */
+.store-list { display: flex; flex-direction: column; gap: 0; }
+.store-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.store-name { font-size: 11px; color: var(--text-secondary); min-width: 148px; }
+.bar-track {
+  flex: 1;
+  height: 5px;
+  background: var(--bg-raised);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+.store-val { font-family: var(--font-mono); font-size: 11px; min-width: 38px; text-align: right; }
+.store-type-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  min-width: 52px;
+  text-align: center;
+}
+.sp-residential { background:rgba(59,130,246,.15); color:#3b82f6; }
+.sp-neighborhood { background:var(--amber-dim); color:var(--amber); }
+.sp-high_street  { background:var(--teal-dim); color:var(--teal); }
+.sp-tourist      { background:rgba(167,139,250,.15); color:#a78bfa; }
+
+/* ═══════════════════════════════════════════
+   CHATBOT
+═══════════════════════════════════════════ */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.input-panel-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: sticky;
+  top: 80px;
+}
+.ip-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom:4px;
+}
+.ip-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.field label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.field select, .field input {
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  outline: none;
+  transition: border-color .15s;
+  appearance: none;
+}
+.field select:focus, .field input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-dim);
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-analyze {
+  width: 100%;
+  padding: 10px;
+  background: var(--teal);
+  border: none;
+  border-radius: 8px;
+  color: #0a0e1a;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  margin-top: 4px;
+}
+.btn-analyze:hover { opacity: .9; }
+.btn-analyze:active { transform: scale(.98); }
+
+.chat-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+}
+.chat-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chat-header-info { flex: 1; }
+.chat-header-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.chat-header-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.ai-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--teal);
+}
+.ai-dot-live {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-dot 2s infinite;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.msg { max-width: 90%; display: flex; flex-direction: column; gap: 4px; }
+.msg.bot { align-self: flex-start; }
+.msg.user { align-self: flex-end; }
+.msg-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.msg.bot .bubble {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 4px 14px 14px 14px;
+}
+.msg.user .bubble {
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-glow);
+  color: var(--text-primary);
+  border-radius: 14px 4px 14px 14px;
+}
+.bubble strong { color: var(--text-primary); font-weight: 500; }
+.bubble .val-danger { color: var(--coral); }
+.bubble .val-good   { color: var(--teal); }
+.bubble .val-warning{ color: var(--amber); }
+
+.rec-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+}
+.rec-row-b {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 11.5px;
+}
+.rec-row-b:last-child { border-bottom: none; }
+.rec-key { color: var(--text-muted); }
+.rec-val { font-family: var(--font-mono); font-weight: 500; }
+
+.kpi-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.kpi-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+.kpi-pill.danger { background:var(--coral-dim); color:var(--coral); border-color:rgba(255,107,107,.2); }
+.kpi-pill.warning { background:var(--amber-dim); color:var(--amber); border-color:rgba(245,158,11,.2); }
+.kpi-pill.good   { background:var(--teal-dim); color:var(--teal); border-color:var(--teal-glow); }
+.kpi-pill.info   { background:var(--blue-dim); color:var(--blue); border-color:rgba(59,130,246,.2); }
+
+.typing { display: flex; gap: 4px; align-items: center; padding: 2px 0; }
+.typing span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: bounce .9s infinite;
+}
+.typing span:nth-child(2) { animation-delay: .2s; }
+.typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+  0%,60%,100%{transform:translateY(0)}
+  30%{transform:translateY(-5px)}
+}
+
+.quick-bar {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.quick-btn {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  font-family: var(--font-body);
+}
+.quick-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+
+.chat-input-bar {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.chat-input {
+  flex: 1;
+  padding: 9px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color .15s;
+}
+.chat-input:focus { border-color: var(--teal); }
+.chat-input::placeholder { color: var(--text-muted); }
+.send-btn {
+  padding: 9px 16px;
+  background: var(--teal);
+  border: none;
+  border-radius: 8px;
+  color: #0a0e1a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+  font-family: var(--font-body);
+}
+.send-btn:hover { opacity: .85; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 90;
+}
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .main { margin-left: 0; }
+  .hamburger { display: flex; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .chart-grid-2, .chart-grid-3, .chart-grid-65 { grid-template-columns: 1fr; }
+  .chat-layout { grid-template-columns: 1fr; }
+  .action-row { grid-template-columns: 60px 1fr; }
+  .action-saving, .action-effort { display: none; }
+  .content { padding: 16px; }
+}
+@media (max-width: 520px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <span class="logo-dot"></span>
+      <span class="logo-text">LIVE · 2024</span>
+    </div>
+    <div class="sidebar-title">WinMart+<br>Fresh Intelligence</div>
+    <div class="sidebar-sub">Đà Nẵng · 15 cửa hàng</div>
+  </div>
+
+  <div class="nav-section">Phân tích</div>
+  <div class="nav-item active" onclick="showPanel('overview',this)">
+    <span class="nav-icon">◈</span> Tổng quan Waste
+    <span class="nav-badge">11.1%</span>
+  </div>
+  <div class="nav-item" onclick="showPanel('metrictree',this)">
+    <span class="nav-icon">⬡</span> Metric Tree / KPI
+  </div>
+  <div class="nav-item" onclick="showPanel('product',this)">
+    <span class="nav-icon">◎</span> Sản phẩm & SKU
+    <span class="nav-badge">Hải sản</span>
+  </div>
+  <div class="nav-item" onclick="showPanel('promotion',this)">
+    <span class="nav-icon">◇</span> Hiệu quả Giảm giá
+  </div>
+  <div class="nav-item" onclick="showPanel('store',this)">
+    <span class="nav-icon">⊞</span> Cửa hàng & Loại CĐ
+  </div>
+
+  <div class="nav-section">Công cụ</div>
+  <div class="nav-item" onclick="showPanel('chatbot',this)">
+    <span class="nav-icon">⬟</span> AI Order Advisor
+    <span class="nav-badge green">AI</span>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="data-tag">
+      <span>395,280</span> bản ghi<br>
+      <span>Jan–Dec</span> 2024<br>
+      <span>9</span> danh mục tươi sống
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+      </div>
+      <div>
+        <div class="page-title" id="page-title">Tổng quan Waste Rate</div>
+        <div class="page-breadcrumb" id="page-bc">WinMart+ Đà Nẵng / Fresh Food / 2024</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="tag-pill">395K rows</div>
+      <div class="tag-pill">15 stores</div>
+      <div class="tag-pill live">Analysis Ready</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ PANEL 1: OVERVIEW ═══ -->
+    <div class="panel active" id="panel-overview">
+      <div class="section-eyebrow">Dashboard 01 · Tổng quan</div>
+      <div class="section-title">Nguyên nhân gây hủy hàng</div>
+      <div class="section-desc">Waste Rate trung bình 11.1% — cứ 9 đơn vị nhập vào thì 1 đơn vị bị hủy. Tổng thiệt hại 47.7 tỷ VND/năm. Nguyên nhân gốc rễ: nhập quá nhiều (CSRB 2.5–3.8×) so với nhu cầu thực tế.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card danger">
+          <div class="kpi-label">WASTE RATE TB</div>
+          <div class="kpi-value danger">11.1%</div>
+          <div class="kpi-sub">Toàn hệ thống 2024</div>
+          <div class="kpi-delta up">▲ cao</div>
+        </div>
+        <div class="kpi-card danger">
+          <div class="kpi-label">GIÁ TRỊ HỦY</div>
+          <div class="kpi-value danger">47.7 tỷ</div>
+          <div class="kpi-sub">VND · chi phí thực tế</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">TỔNG SỐ LƯỢNG HỦY</div>
+          <div class="kpi-value warning">1.38M</div>
+          <div class="kpi-sub">đơn vị sản phẩm</div>
+        </div>
+        <div class="kpi-card good">
+          <div class="kpi-label">LOST SALES RATE</div>
+          <div class="kpi-value good">3.1%</div>
+          <div class="kpi-sub">Thiếu hàng xảy ra song song</div>
+          <div class="kpi-delta dn">thấp</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-label">Nguyên nhân gốc rễ</div>
+        <div class="insight-text">Waste xảy ra vì <strong>Supply > Demand</strong>: CSRB trung bình 2.5–3.8× — nhập gấp 2.5–3.8 lần lượng bán thực tế. Fill rate 97% chứng minh không có vấn đề thiếu hàng — toàn bộ waste đến từ thừa hàng có cấu trúc. Hải sản (shelf 1–3 ngày) chịu tác động nặng nhất.</div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate theo danh mục (%)</div>
+          <div class="chart-sub">Hải sản cao nhất (18.9%) — gấp 9× so với Trứng (0.2%)</div>
+          <div class="chart-wrap"><canvas id="c-cat" height="240"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Xu hướng Waste Rate theo tháng</div>
+          <div class="chart-sub">Tháng 2 (Tết) đỉnh 15.4% — tháng 9–10 thấp nhất 9.5%</div>
+          <div class="chart-wrap"><canvas id="c-month" height="240"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-card full">
+        <div class="chart-title">Waste Rate theo cửa hàng</div>
+        <div class="chart-sub">Chênh lệch chỉ 2.4% giữa tốt nhất và kém nhất → đây là vấn đề hệ thống, không phải cục bộ</div>
+        <div class="chart-wrap"><canvas id="c-store-ov" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 2: METRIC TREE ═══ -->
+    <div class="panel" id="panel-metrictree">
+      <div class="section-eyebrow">Dashboard 02 · Metric Tree</div>
+      <div class="section-title">Waste Rate hình thành từ đâu?</div>
+      <div class="section-desc">Phân rã KPI theo 3 driver chính: DOH (ngày tồn kho), Sell-through (tốc độ bán), CV (biến động nhu cầu). Hải sản có CV cao nhất và DOH gần giới hạn shelf life.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card danger">
+          <div class="kpi-label">DOH HẢI SẢN</div>
+          <div class="kpi-value danger">0.87d</div>
+          <div class="kpi-sub">vs shelf life 1.9 ngày → buffer 1.03d</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">SELL-THROUGH TB</div>
+          <div class="kpi-value warning">40.7%</div>
+          <div class="kpi-sub">Chỉ bán 40.7% lượng nhập vào</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">CV HẢI SẢN</div>
+          <div class="kpi-value warning">0.418</div>
+          <div class="kpi-sub">Biến động nhu cầu cao nhất</div>
+        </div>
+        <div class="kpi-card good">
+          <div class="kpi-label">FILL RATE TB</div>
+          <div class="kpi-value good">97.0%</div>
+          <div class="kpi-sub">Không thiếu hàng — đang thừa</div>
+        </div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-title">DOH theo danh mục (ngày tồn kho)</div>
+          <div class="chart-sub">DOH thấp + shelf life ngắn = vùng nguy hiểm cao nhất</div>
+          <div class="chart-wrap"><canvas id="c-doh" height="230"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Sell-through vs Waste Rate (scatter)</div>
+          <div class="chart-sub">Sell-through thấp → waste cao. Tương quan âm rõ ràng</div>
+          <div class="chart-wrap"><canvas id="c-scatter-st" height="230"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Biến động nhu cầu CV theo danh mục</div>
+          <div class="chart-sub">CV > 0.40 = rất khó dự báo → nhập sai thường xuyên</div>
+          <div class="chart-wrap"><canvas id="c-cv" height="230"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate theo DOH bucket</div>
+          <div class="chart-sub">DOH 0.5–2 ngày = vùng nguy hiểm peak. DOH > 2 ngày thì ổn</div>
+          <div class="chart-wrap"><canvas id="c-doh-bucket" height="230"></canvas></div>
+        </div>
+      </div>
+
+      <div class="insight teal">
+        <div class="insight-label">Kết luận Metric Tree</div>
+        <div class="insight-text">Waste Rate tăng khi 3 yếu tố đồng thời xảy ra: <strong>(1) CSRB cao</strong> (nhập nhiều) + <strong>(2) Sell-through thấp</strong> (40.7%) + <strong>(3) CV cao</strong> (0.42 với Hải sản). Fill rate 97% xác nhận: không thiếu hàng — toàn bộ waste là do thừa hàng cấu trúc.</div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 3: PRODUCT ═══ -->
+    <div class="panel" id="panel-product">
+      <div class="section-eyebrow">Dashboard 03 · Sản phẩm</div>
+      <div class="section-title">Hàng nào gây waste nhiều nhất?</div>
+      <div class="section-desc">Hải sản chiếm 26.9% tổng giá trị hủy (12.84 tỷ). 3 danh mục Hải sản + Rau củ + Trái cây = 63.5% tổng waste. Heatmap tháng × danh mục cho thấy tháng 2 và tháng 6–7 là cao điểm.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card danger">
+          <div class="kpi-label">HẢI SẢN WASTE VALUE</div>
+          <div class="kpi-value danger">12.84 tỷ</div>
+          <div class="kpi-sub">26.9% tổng — cao nhất</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">TRÁI CÂY WASTE VALUE</div>
+          <div class="kpi-value warning">9.49 tỷ</div>
+          <div class="kpi-sub">19.9% — vị trí 2</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">RAU CỦ WASTE VALUE</div>
+          <div class="kpi-value warning">7.97 tỷ</div>
+          <div class="kpi-sub">16.7% — vị trí 3</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">3 DANH MỤC NÀY</div>
+          <div class="kpi-value">63.5%</div>
+          <div class="kpi-sub">tổng giá trị hủy toàn hệ thống</div>
+        </div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Top 8 SKU theo giá trị hủy (tỷ VND)</div>
+          <div class="chart-sub">6/8 SKU đắt nhất là Hải sản hoặc Trái cây</div>
+          <div class="chart-wrap"><canvas id="c-sku-top" height="240"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate Hải sản theo ngày trong tuần</div>
+          <div class="chart-sub">Thứ Hai, Tư, Sáu (21.5%) cao hơn cuối tuần (16.5%) — ngày nhập hàng</div>
+          <div class="chart-wrap"><canvas id="c-dow" height="240"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-card full">
+        <div class="chart-title">Heatmap: Waste Rate theo Tháng × Danh mục (%)</div>
+        <div class="chart-sub">Tháng 2 (Tết) là đỉnh toàn hệ thống. Màu đỏ = cần can thiệp ngay</div>
+        <div class="hm-wrap"><table class="hm" id="hm-month"></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 4: PROMOTION ═══ -->
+    <div class="panel" id="panel-promotion">
+      <div class="section-eyebrow">Dashboard 04 · Promotion</div>
+      <div class="section-title">Giảm giá có giảm waste không?</div>
+      <div class="section-desc">Kết quả đáng ngạc nhiên: promotion hiện tại làm tăng waste +4.4%. Lý do: nhập thêm +26% nhưng bán thêm chỉ +16%. Bundle là ngoại lệ duy nhất giảm waste xuống 8.6%.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card danger">
+          <div class="kpi-label">WASTE RATE CÓ PROMO</div>
+          <div class="kpi-value danger">14.9%</div>
+          <div class="kpi-sub">+4.4 điểm so không promo</div>
+          <div class="kpi-delta up">▲ tăng</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">WASTE RATE KHÔNG PROMO</div>
+          <div class="kpi-value">10.5%</div>
+          <div class="kpi-sub">Baseline thực tế</div>
+        </div>
+        <div class="kpi-card good">
+          <div class="kpi-label">BUNDLE WASTE RATE</div>
+          <div class="kpi-value good">8.6%</div>
+          <div class="kpi-sub">Thấp hơn cả không promo!</div>
+          <div class="kpi-delta dn">▼ tốt nhất</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">QTY RECEIVED KHI PROMO</div>
+          <div class="kpi-value warning">+26%</div>
+          <div class="kpi-sub">Nhập thêm khi có khuyến mãi</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-label">Tại sao promo phản tác dụng?</div>
+        <div class="insight-text">Khi có promotion, cửa hàng nhập thêm <strong>+26%</strong> để đảm bảo đủ hàng phục vụ, nhưng doanh số chỉ tăng <strong>+16%</strong>. Khoảng chênh 10% biến thành hàng hủy thêm. <strong>Vấn đề không phải giảm giá — mà là nhập quá nhiều trước khi chạy promo.</strong></div>
+      </div>
+
+      <div class="chart-grid-3">
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate theo loại promotion</div>
+          <div class="chart-sub">Bundle thắng — không cần nhập thêm</div>
+          <div class="chart-wrap"><canvas id="c-promo-type" height="200"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Mức chiết khấu vs Waste Rate</div>
+          <div class="chart-sub">Giảm giá mạnh hơn → waste cao hơn</div>
+          <div class="chart-wrap"><canvas id="c-discount" height="200"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate theo ngày có/không promo</div>
+          <div class="chart-sub">Thứ Hai & Sáu có promo = waste 17.9%</div>
+          <div class="chart-wrap"><canvas id="c-promo-dow" height="200"></canvas></div>
+        </div>
+      </div>
+
+      <div class="insight teal">
+        <div class="insight-label">Điều kiện để promotion hiệu quả</div>
+        <div class="insight-text"><strong>Bundle</strong> (waste 8.6%): không nhập thêm, tăng giỏ hàng khách → combo Cá + Rau, Tôm + Rau ăn kèm. <strong>Price Off</strong> chỉ hiệu quả khi áp dụng sau 15:00 để clearance hàng đang tồn — <strong>tuyệt đối không nhập thêm hàng vì có promotion.</strong></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 5: STORE ═══ -->
+    <div class="panel" id="panel-store">
+      <div class="section-eyebrow">Dashboard 05 & 06 · Cửa hàng</div>
+      <div class="section-title">Waste ở đâu — và tiết kiệm bao nhiêu?</div>
+      <div class="section-desc">Residential (Lien Chieu, Ngu Hanh Son) có waste cao nhất vì diện tích nhỏ, ít lưu lượng. Tourist thấp nhất vì khách vãng lai mua nhiều mỗi lần. Tiết kiệm tiềm năng: 8.44 tỷ VND/năm.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card danger">
+          <div class="kpi-label">RESIDENTIAL WASTE</div>
+          <div class="kpi-value danger">19.9%</div>
+          <div class="kpi-sub">4 CĐ · Lien Chieu, Ngu Hanh Son</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">NEIGHBORHOOD WASTE</div>
+          <div class="kpi-value warning">19.6%</div>
+          <div class="kpi-sub">5 CĐ · Cam Le, Thanh Khe, Son Tra</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">HIGH-STREET WASTE</div>
+          <div class="kpi-value warning">18.1%</div>
+          <div class="kpi-sub">4 CĐ · Hai Chau</div>
+        </div>
+        <div class="kpi-card good">
+          <div class="kpi-label">TOURIST WASTE</div>
+          <div class="kpi-value good">16.8%</div>
+          <div class="kpi-sub">Thấp nhất · 2 CĐ · Son Tra</div>
+        </div>
+      </div>
+
+      <div class="chart-grid-65">
+        <div class="chart-card">
+          <div class="chart-title">Xếp hạng 15 cửa hàng theo Waste Rate (Hải sản)</div>
+          <div class="chart-sub">Màu = loại cửa hàng. Residential & Neighborhood luôn top đỏ</div>
+          <div id="store-rank-list" class="store-list"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Waste Rate vs Diện tích (m²)</div>
+          <div class="chart-sub">Cửa hàng nhỏ hơn → waste cao hơn</div>
+          <div class="chart-wrap"><canvas id="c-size-scatter" height="280"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-card full">
+        <div class="chart-title">Heatmap: Waste Rate SKU × Loại cửa hàng (%)</div>
+        <div class="chart-sub">Cá basa, Tôm sú, Cua lột tại Residential đều >22% — 4 SKU ưu tiên giảm đặt hàng ngay</div>
+        <div class="hm-wrap"><table class="hm" id="hm-sku-type"></table></div>
+      </div>
+
+      <div class="chart-card full" style="margin-top:16px">
+        <div class="chart-title">Kế hoạch hành động — Ước tính tiết kiệm 8.44 tỷ VND/năm</div>
+        <div class="chart-sub">Sắp xếp theo mức tiết kiệm và độ khó triển khai</div>
+        <div class="action-list" id="action-plan"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 6: CHATBOT ═══ -->
+    <div class="panel" id="panel-chatbot">
+      <div class="section-eyebrow">Công cụ · AI Order Advisor</div>
+      <div class="section-title">Gợi ý nhập hàng cho ngày mai</div>
+      <div class="section-desc">Nhập thông số cửa hàng và tình trạng hàng hôm nay → nhận đề xuất lượng đặt hàng tối ưu, giờ markdown, và cảnh báo waste dựa trên dữ liệu thực 2024.</div>
+
+      <div class="chat-layout">
+        <!-- Input Panel -->
+        <div class="input-panel-card">
+          <div class="ip-title">Thông số phân tích</div>
+          <div class="ip-sub">Điền các chỉ số KPI hôm nay để nhận gợi ý nhập hàng tối ưu cho ngày mai</div>
+
+          <div class="field">
+            <label>Loại cửa hàng</label>
+            <select id="sel-store">
+              <option value="residential">Residential (Lien Chieu / Ngu Hanh Son)</option>
+              <option value="neighborhood">Neighborhood (Cam Le / Thanh Khe)</option>
+              <option value="high_street">High-street (Hai Chau)</option>
+              <option value="tourist">Tourist (Son Tra / Ngu Hanh Son)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>SKU Hải sản</label>
+            <select id="sel-sku">
+              <option value="basa">Cá basa phi lê 300g (shelf 1d)</option>
+              <option value="tomsu">Tôm sú 500g (shelf 1d)</option>
+              <option value="ngao">Ngao trắng 500g (shelf 3d)</option>
+              <option value="cua">Cua lột 500g (shelf 2d)</option>
+              <option value="tomthe">Tôm thẻ 300g (shelf 1d)</option>
+              <option value="canguu">Cá ngừ cắt miếng 300g (shelf 2d)</option>
+              <option value="dieuhong">Cá điêu hồng 500g (shelf 2d)</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Tồn kho hiện tại</label>
+              <input type="number" id="inp-inv" value="12" min="0" max="100" placeholder="đơn vị">
+            </div>
+            <div class="field">
+              <label>Ngày mai</label>
+              <select id="sel-dow">
+                <option value="mon">Thứ Hai</option>
+                <option value="tue">Thứ Ba</option>
+                <option value="wed">Thứ Tư</option>
+                <option value="thu">Thứ Năm</option>
+                <option value="fri">Thứ Sáu</option>
+                <option value="sat" selected>Thứ Bảy</option>
+                <option value="sun">Chủ Nhật</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Hôm nay bán được</label>
+              <input type="number" id="inp-sold" value="9" min="0" max="50">
+            </div>
+            <div class="field">
+              <label>Hôm nay bị hủy</label>
+              <input type="number" id="inp-wasted" value="3" min="0" max="30">
+            </div>
+          </div>
+          <div class="field">
+            <label>Promotion ngày mai</label>
+            <select id="sel-promo">
+              <option value="none">Không có</option>
+              <option value="bundle">Bundle (khuyến nghị)</option>
+              <option value="priceoff">Price Off (cảnh báo)</option>
+              <option value="multibuy">Multi-buy (rủi ro cao)</option>
+            </select>
+          </div>
+          <button class="btn-analyze" onclick="runAnalysis()">Phân tích & Gợi ý →</button>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div>
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--teal-dim);border:1px solid var(--teal-glow);display:flex;align-items:center;justify-content:center;font-size:14px;">⬟</div>
+            </div>
+            <div class="chat-header-info">
+              <div class="chat-header-name">WinMart+ Fresh Advisor</div>
+              <div class="chat-header-sub">AI · dữ liệu 2024 · 395K bản ghi</div>
+            </div>
+            <div class="ai-status"><span class="ai-dot-live"></span>Online</div>
+          </div>
+
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg bot">
+              <div class="msg-meta"><span class="ai-dot-live" style="width:5px;height:5px"></span>Fresh Advisor · vừa xong</div>
+              <div class="bubble">
+                Xin chào! Tôi là <strong>WinMart+ Fresh Advisor</strong> — trợ lý AI tư vấn nhập hàng Hải sản dựa trên dữ liệu thực 2024.<br><br>
+                Điền thông số bên trái và nhấn <strong>Phân tích & Gợi ý</strong>, hoặc hỏi trực tiếp bên dưới.<br><br>
+                Ví dụ: <em>"Thứ Hai nên nhập Tôm sú bao nhiêu?"</em>, <em>"Khi nào markdown Hải sản?"</em>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-bar">
+            <button class="quick-btn" onclick="quickAsk('Khi nào nên markdown Hải sản trong ngày?')">Thời điểm markdown</button>
+            <button class="quick-btn" onclick="quickAsk('Residential khác Tourist thế nào về nhập hàng?')">Residential vs Tourist</button>
+            <button class="quick-btn" onclick="quickAsk('CSRB mục tiêu cho Hải sản là bao nhiêu?')">CSRB mục tiêu</button>
+            <button class="quick-btn" onclick="quickAsk('Tháng Tết nên nhập Hải sản thế nào?')">Nhập hàng Tết</button>
+            <button class="quick-btn" onclick="quickAsk('Promotion nào tốt nhất để giảm waste Hải sản?')">Promotion tốt nhất</button>
+          </div>
+
+          <div class="chat-input-bar">
+            <input class="chat-input" id="chat-inp" placeholder="Hỏi về nhập hàng, waste rate, promotion..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="send-btn" onclick="sendChat()">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════
+const D = {
+  cats: ['Hải sản','Rau củ','Trái cây','Thịt heo','Thịt gà','Đậu hũ','Thịt bò','Sữa tươi','Trứng'],
+  catWR:  [18.9,14.6,13.7,12.7,10.5,9.0,8.0,4.0,0.2],
+  catDOH: [0.87,1.08,1.32,1.31,1.29,1.82,1.20,2.52,2.76],
+  catST:  [45.8,45.8,42.2,41.0,42.3,35.4,52.3,27.9,29.2],
+  catCV:  [0.418,0.345,0.371,0.374,0.369,0.303,0.306,0.311,0.332],
+  months: ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'],
+  monthWR:[13.54,15.44,12.80,10.02,9.76,10.22,10.81,10.22,9.56,9.48,9.99,11.14],
+  stores: ['WM+ Ton Duc Thang','WM+ N.Luong Bang','WM+ Tran Dai Nghia','WM+ Tran Cao Van','WM+ CMT8','WM+ N.Huu Tho','WM+ Le Duan','WM+ Bach Dang','WM+ Le Van Hien','WM+ Ngo Quyen','WM+ N.Van Linh','WM+ Hoang Dieu','WM+ Nui Thanh','WM+ Pham Van Dong','WM+ My An'],
+  storeWR:[20.38,20.30,20.27,20.23,19.92,19.80,19.49,19.23,18.58,18.40,18.06,17.74,17.24,17.00,16.55],
+  storeType:['residential','residential','residential','neighborhood','neighborhood','neighborhood','neighborhood','high_street','residential','neighborhood','high_street','high_street','high_street','tourist','tourist'],
+  storeSize:[140,130,128,145,150,155,165,190,135,150,175,158,168,170,160],
+  skuNames:['Cá basa phi lê','Ngao trắng','Kiwi vàng','Thanh long','Nho đỏ','Cá ngừ','Đuôi heo','Tôm sú'],
+  skuWaste:[3.65,2.87,1.42,1.64,1.65,1.76,1.39,1.33],
+  skuCat:  ['Hải sản','Hải sản','Trái cây','Trái cây','Trái cây','Hải sản','Thịt heo','Hải sản'],
+  dows:    ['Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy','Chủ Nhật'],
+  dowWR_hai:[21.59,17.01,21.54,17.08,21.54,16.70,16.55],
+  heatMonthCat:{
+    'Hải sản': [22.36,26.57,21.38,16.42,16.14,18.92,19.76,18.79,15.81,15.39,16.44,18.89],
+    'Rau củ':  [18.10,20.46,17.02,13.30,12.89,13.14,13.96,13.19,12.68,12.56,13.19,14.84],
+    'Trái cây':[16.86,18.81,15.84,12.52,12.20,12.44,13.19,12.44,11.96,11.88,12.49,13.79],
+    'Thịt heo':[15.88,17.72,15.08,11.41,11.19,11.36,11.99,11.37,10.91,11.01,11.43,12.74],
+    'Thịt bò': [9.70, 11.34,9.01, 7.49, 7.30, 7.02, 7.73, 7.37, 7.16, 7.00, 7.20, 8.08],
+  },
+  heatSkuType:{
+    'Cá basa phi lê':[22.36,21.79,20.06,18.59],
+    'Cá ngừ cắt miếng':[21.75,21.30,20.18,18.86],
+    'Cua lột':[22.49,21.72,19.96,18.67],
+    'Ngao trắng':[22.28,21.69,20.25,18.64],
+    'Tôm sú':[22.34,21.63,20.31,18.69],
+    'Tôm thẻ':[21.01,21.56,19.21,18.18],
+    'Chẻm chép':[14.41,14.65,13.59,12.55],
+    'Cá điêu hồng':[11.94,11.79,10.82,9.50],
+  },
+};
+
+// ══════════════════════════════════════════════
+// CHART HELPERS
+// ══════════════════════════════════════════════
+const gc = 'rgba(255,255,255,0.06)';
+const tc = '#4a5568';
+const baseOpts = (extra={}) => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid:{color:gc}, ticks:{color:tc,font:{size:10,family:'DM Mono'}} },
+    y: { grid:{color:gc}, ticks:{color:tc,font:{size:10,family:'DM Mono'}} }
+  },
+  ...extra
+});
+
+function barColor(v, hi=18, mid=10) {
+  return v >= hi ? '#ff6b6b' : v >= mid ? '#f59e0b' : '#00d4aa';
+}
+
+// ══════════════════════════════════════════════
+// INIT CHARTS — PANEL 1
+// ══════════════════════════════════════════════
+function initOverview() {
+  new Chart(document.getElementById('c-cat'), {
+    type:'bar',
+    data:{ labels: D.cats, datasets:[{ data:D.catWR, backgroundColor:D.catWR.map(v=>barColor(v)), borderRadius:4 }]},
+    options: { ...baseOpts(), indexAxis:'y',
+      scales:{ x:{...baseOpts().scales.x, ticks:{...baseOpts().scales.x.ticks, callback:v=>v+'%'}},
+               y:{...baseOpts().scales.y, grid:{display:false}} } }
+  });
+  new Chart(document.getElementById('c-month'), {
+    type:'line',
+    data:{ labels:D.months, datasets:[{ data:D.monthWR, borderColor:'#ff6b6b', backgroundColor:'rgba(255,107,107,.08)', tension:.4, fill:true, pointRadius:3, pointBackgroundColor:'#ff6b6b' }]},
+    options:{ ...baseOpts(), scales:{ x:baseOpts().scales.x, y:{...baseOpts().scales.y, min:8, max:17, ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'} } } }
+  });
+  const stWRall = [12.21,12.20,11.90,11.76,11.52,11.43,11.31,11.16,10.92,10.78,10.57,10.42,10.28,10.02,9.82];
+  const stNamesShort = ['N.Luong Bang','Ton Duc Thang','Tran Dai Nghia','Tran Cao Van','CMT8','N.Huu Tho','Le Duan','Bach Dang','Le Van Hien','Ngo Quyen','N.Van Linh','Hoang Dieu','Nui Thanh','Pham Van Dong','My An'];
+  new Chart(document.getElementById('c-store-ov'), {
+    type:'bar',
+    data:{ labels:stNamesShort, datasets:[{ data:stWRall, backgroundColor:stWRall.map(v=>barColor(v,11.5,10.5)), borderRadius:4 }]},
+    options:{ ...baseOpts(), scales:{ x:{...baseOpts().scales.x,grid:{display:false},ticks:{color:tc,font:{size:9,family:'DM Mono'},maxRotation:35}}, y:{...baseOpts().scales.y,min:9,max:13,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}} } }
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT CHARTS — PANEL 2
+// ══════════════════════════════════════════════
+function initMetricTree() {
+  new Chart(document.getElementById('c-doh'),{
+    type:'bar', data:{labels:D.cats, datasets:[{data:D.catDOH, backgroundColor:D.catDOH.map(v=>v<1?'#ff6b6b':v<1.5?'#f59e0b':'#00d4aa'), borderRadius:4}]},
+    options:{...baseOpts(),indexAxis:'y',scales:{x:{...baseOpts().scales.x,title:{display:true,text:'DOH (ngày)',color:tc,font:{size:10}}},y:{...baseOpts().scales.y,grid:{display:false}}}}
+  });
+  new Chart(document.getElementById('c-scatter-st'),{
+    type:'scatter',
+    data:{datasets:[{data:D.cats.map((c,i)=>({x:D.catST[i],y:D.catWR[i],label:c})), backgroundColor:D.catWR.map(v=>barColor(v)), pointRadius:9}]},
+    options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: ST=${ctx.raw.x.toFixed(1)}% WR=${ctx.raw.y.toFixed(1)}%`}}},
+      scales:{x:{...baseOpts().scales.x,min:20,max:60,title:{display:true,text:'Sell-through %',color:tc,font:{size:10}},ticks:{...baseOpts().scales.x.ticks,callback:v=>v+'%'}},
+              y:{...baseOpts().scales.y,title:{display:true,text:'Waste rate %',color:tc,font:{size:10}},ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  new Chart(document.getElementById('c-cv'),{
+    type:'bar', data:{labels:D.cats, datasets:[{data:D.catCV, backgroundColor:D.catCV.map(v=>v>0.4?'#ff6b6b':v>0.35?'#f59e0b':'#00d4aa'), borderRadius:4}]},
+    options:{...baseOpts(),indexAxis:'y',scales:{x:{...baseOpts().scales.x,title:{display:true,text:'Hệ số biến động CV',color:tc,font:{size:10}}},y:{...baseOpts().scales.y,grid:{display:false}}}}
+  });
+  const bkts=['<0.5d','0.5–1d','1–1.5d','1.5–2d','2–5d','>5d'];
+  const bktWR=[6.80,14.76,14.28,13.91,5.75,3.32];
+  new Chart(document.getElementById('c-doh-bucket'),{
+    type:'bar', data:{labels:bkts, datasets:[{data:bktWR, backgroundColor:bktWR.map(v=>barColor(v,12,6)), borderRadius:4}]},
+    options:{...baseOpts(),scales:{x:{...baseOpts().scales.x,grid:{display:false}},y:{...baseOpts().scales.y,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT — PANEL 3
+// ══════════════════════════════════════════════
+function initProduct() {
+  const catC={'Hải sản':'#ff6b6b','Trái cây':'#3b82f6','Thịt heo':'#f59e0b','Thịt gà':'#00d4aa'};
+  new Chart(document.getElementById('c-sku-top'),{
+    type:'bar', data:{labels:D.skuNames, datasets:[{data:D.skuWaste, backgroundColor:D.skuNames.map((_,i)=>catC[D.skuCat[i]]||'#8892a4'), borderRadius:4}]},
+    options:{...baseOpts(),indexAxis:'y',scales:{x:{...baseOpts().scales.x,title:{display:true,text:'Giá trị hủy (tỷ VND)',color:tc,font:{size:10}}},y:{...baseOpts().scales.y,grid:{display:false},ticks:{color:tc,font:{size:10,family:'DM Mono'}}}}}
+  });
+  new Chart(document.getElementById('c-dow'),{
+    type:'bar', data:{labels:D.dows, datasets:[{data:D.dowWR_hai, backgroundColor:D.dowWR_hai.map(v=>barColor(v,20,17)), borderRadius:4}]},
+    options:{...baseOpts(),scales:{x:{...baseOpts().scales.x,grid:{display:false}},y:{...baseOpts().scales.y,min:13,max:24,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  // Heatmap month x cat
+  const t=document.getElementById('hm-month');
+  const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+  t.innerHTML='<tr><th class="row-h">Danh mục</th>'+months.map(m=>`<th>${m}</th>`).join('')+'</tr>';
+  Object.entries(D.heatMonthCat).forEach(([cat,vals])=>{
+    let row=`<tr><td class="row-lbl">${cat}</td>`;
+    vals.forEach(v=>{
+      const bg=v>22?'rgba(255,107,107,.35)':v>18?'rgba(255,107,107,.2)':v>14?'rgba(245,158,11,.2)':v>10?'rgba(245,158,11,.1)':'rgba(0,212,170,.1)';
+      const cl=v>18?'#ff6b6b':v>14?'#f59e0b':'#00d4aa';
+      row+=`<td style="background:${bg};color:${cl}">${v.toFixed(1)}</td>`;
+    });
+    t.innerHTML+=row+'</tr>';
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT — PANEL 4
+// ══════════════════════════════════════════════
+function initPromotion() {
+  new Chart(document.getElementById('c-promo-type'),{
+    type:'bar', data:{labels:['Bundle','Không promo','Price Off','Multi-buy'], datasets:[{data:[8.55,10.48,14.99,15.41], backgroundColor:['#00d4aa','#8892a4','#ff6b6b','#a32d2d'], borderRadius:4}]},
+    options:{...baseOpts(),scales:{x:{...baseOpts().scales.x,grid:{display:false}},y:{...baseOpts().scales.y,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  new Chart(document.getElementById('c-discount'),{
+    type:'bar', data:{labels:['0% (không)','6–10%','11–15%'], datasets:[{data:[10.48,12.87,18.03], backgroundColor:['#00d4aa','#f59e0b','#ff6b6b'], borderRadius:4}]},
+    options:{...baseOpts(),scales:{x:{...baseOpts().scales.x,grid:{display:false}},y:{...baseOpts().scales.y,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  const noProDow=[12.50,10.35,11.21,10.67,12.03,9.18,7.09];
+  const proDow=[17.92,14.51,15.71,14.91,17.28,12.99,10.71];
+  new Chart(document.getElementById('c-promo-dow'),{
+    type:'bar',
+    data:{labels:['T2','T3','T4','T5','T6','T7','CN'], datasets:[
+      {label:'Không promo',data:noProDow,backgroundColor:'rgba(0,212,170,.6)',borderRadius:4},
+      {label:'Có promo',data:proDow,backgroundColor:'rgba(255,107,107,.6)',borderRadius:4}
+    ]},
+    options:{...baseOpts(),plugins:{legend:{display:false}},scales:{x:{...baseOpts().scales.x,grid:{display:false}},y:{...baseOpts().scales.y,ticks:{...baseOpts().scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT — PANEL 5
+// ══════════════════════════════════════════════
+function initStore() {
+  const typeC={residential:'#3b82f6',neighborhood:'#f59e0b',high_street:'#00d4aa',tourist:'#a78bfa'};
+  const typeLabel={residential:'Residential',neighborhood:'Neighborhood',high_street:'High-street',tourist:'Tourist'};
+
+  // Store rank list
+  const el=document.getElementById('store-rank-list');
+  D.stores.forEach((s,i)=>{
+    const pct=(D.storeWR[i]-15)/(21-15)*100;
+    const col=D.storeWR[i]>20?'#ff6b6b':D.storeWR[i]>18.5?'#f59e0b':'#00d4aa';
+    const tp=D.storeType[i];
+    el.innerHTML+=`<div class="store-row">
+      <span class="store-type-pill sp-${tp}">${typeLabel[tp].substring(0,5)}</span>
+      <span class="store-name">${s.replace('WM+ ','')}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="store-val" style="color:${col}">${D.storeWR[i].toFixed(1)}%</span>
+    </div>`;
+  });
+
+  // Size scatter
+  new Chart(document.getElementById('c-size-scatter'),{
+    type:'scatter',
+    data:{datasets:[{data:D.stores.map((_,i)=>({x:D.storeSize[i],y:D.storeWR[i],label:D.stores[i],t:D.storeType[i]})), backgroundColor:D.storeType.map(t=>typeC[t]+'cc'), pointRadius:9}]},
+    options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: ${ctx.raw.y.toFixed(1)}% (${ctx.raw.t})`}}},
+      scales:{x:{...baseOpts().scales.x,min:120,max:200,title:{display:true,text:'Diện tích m²',color:tc,font:{size:10}},ticks:{color:tc,font:{size:10,family:'DM Mono'}}},
+              y:{...baseOpts().scales.y,min:15,max:22,title:{display:true,text:'Waste Rate %',color:tc,font:{size:10}},ticks:{color:tc,font:{size:10,family:'DM Mono'},callback:v=>v+'%'}}}}
+  });
+
+  // Heatmap SKU x store type
+  const t2=document.getElementById('hm-sku-type');
+  const tLabels=['Residential','Neighborhood','High-street','Tourist'];
+  t2.innerHTML='<tr><th class="row-h">SKU</th>'+tLabels.map(l=>`<th>${l}</th>`).join('')+'</tr>';
+  Object.entries(D.heatSkuType).forEach(([sku,vals])=>{
+    let row=`<tr><td class="row-lbl">${sku}</td>`;
+    vals.forEach(v=>{
+      const bg=v>21.5?'rgba(255,107,107,.3)':v>19?'rgba(255,107,107,.18)':v>15?'rgba(245,158,11,.18)':'rgba(0,212,170,.12)';
+      const cl=v>19?'#ff6b6b':v>15?'#f59e0b':'#00d4aa';
+      row+=`<td style="background:${bg};color:${cl}">${v.toFixed(1)}%</td>`;
+    });
+    t2.innerHTML+=row+'</tr>';
+  });
+
+  // Action plan
+  const actions=[
+    {p:'P1',cls:'p1',name:'Markdown theo khung giờ — Hải sản',detail:'10h: -15% → 18h: -30% → 20h: -50% clearance',saving:'~2.1 tỷ/năm',effort:'Dễ'},
+    {p:'P1',cls:'p1',name:'Giảm đặt Hải sản 35%, tăng giao 4×/tuần',detail:'Từ 2×/tuần lên 4×/tuần — mỗi lần ít hơn, tươi hơn',saving:'~2.4 tỷ/năm',effort:'Trung bình'},
+    {p:'P2',cls:'p2',name:'Giảm đặt Rau củ 20%, Trái cây 15%',detail:'Điều chỉnh ORP dựa trên lịch sử 3 tháng',saving:'~3.0 tỷ/năm',effort:'Trung bình'},
+    {p:'P2',cls:'p2',name:'Dời ngày nhập: Thứ Hai → Thứ Ba, Sáu → Năm',detail:'Thứ Hai & Sáu có waste 21.5% — ngày nhập đầu/cuối tuần',saving:'~0.5 tỷ/năm',effort:'Dễ'},
+    {p:'P3',cls:'p3',name:'Chuyển Price Off sang Bundle cho Hải sản',detail:'Bundle combo: Cá + Rau muống, Tôm + Rau ăn kèm',saving:'~0.5 tỷ/năm',effort:'Khó'},
+    {p:'P3',cls:'p3',name:'Giảm nhập 40% tuần Tết (tuần 5–8)',detail:'Waste Tết đỉnh 27.5% — cần phác đồ đặc biệt',saving:'~0.8 tỷ/năm',effort:'Khó'},
+  ];
+  const el2=document.getElementById('action-plan');
+  actions.forEach(a=>{
+    el2.innerHTML+=`<div class="action-row">
+      <span class="priority-badge ${a.cls}">${a.p}<br><span style="font-size:8px;opacity:.7">Ưu tiên</span></span>
+      <div><div class="action-name">${a.name}</div><div class="action-detail">${a.detail}</div></div>
+      <span class="action-saving">${a.saving}</span>
+      <span class="action-effort">${a.effort}</span>
+    </div>`;
+  });
+}
+
+// ══════════════════════════════════════════════
+// CHATBOT
+// ══════════════════════════════════════════════
+const SKU_DATA={
+  basa:    {name:'Cá basa phi lê 300g',shelf:1,avgSold:10.4,csrb:2.45,cost:35000},
+  tomsu:   {name:'Tôm sú 500g',shelf:1,avgSold:8.5,csrb:2.45,cost:55000},
+  ngao:    {name:'Ngao trắng 500g',shelf:3,avgSold:9.2,csrb:2.45,cost:40000},
+  cua:     {name:'Cua lột 500g',shelf:2,avgSold:10.6,csrb:2.45,cost:58000},
+  tomthe:  {name:'Tôm thẻ 300g',shelf:1,avgSold:4.3,csrb:2.45,cost:42000},
+  canguu:  {name:'Cá ngừ cắt miếng 300g',shelf:2,avgSold:6.2,csrb:2.45,cost:38000},
+  dieuhong:{name:'Cá điêu hồng 500g',shelf:2,avgSold:2.8,csrb:2.05,cost:32000},
+};
+const STORE_DATA={
+  residential:{label:'Residential',wrMult:1.06,csrbBench:2.45,sellMult:0.93,markdown_hr:17,note:'Giờ tan làm 17–19h là cao điểm — tập trung clearance lúc này'},
+  neighborhood:{label:'Neighborhood',wrMult:1.04,csrbBench:2.38,sellMult:0.96,markdown_hr:16,note:'Chợ sáng 9–11h và chiều 16–18h — 2 đỉnh bán trong ngày'},
+  high_street: {label:'High-street',wrMult:0.96,csrbBench:2.31,sellMult:1.04,markdown_hr:18,note:'Cao điểm trưa 12–13h và tối 18–20h'},
+  tourist:     {label:'Tourist',wrMult:0.89,csrbBench:2.25,sellMult:1.07,markdown_hr:19,note:'Khách vãng lai mua nhiều — ít phải markdown. Tăng nhẹ cuối tuần'},
+};
+const DOW_MULT={mon:0.92,tue:1.00,wed:0.93,thu:1.01,fri:0.94,sat:1.11,sun:1.03};
+const DOW_LABEL={mon:'Thứ Hai',tue:'Thứ Ba',wed:'Thứ Tư',thu:'Thứ Năm',fri:'Thứ Sáu',sat:'Thứ Bảy',sun:'Chủ Nhật'};
+const PROMO_DATA={
+  none:    {mult:1.0,wrmult:1.0,warn:false},
+  bundle:  {mult:1.2,wrmult:0.82,warn:false},
+  priceoff:{mult:1.16,wrmult:1.43,warn:true,warnMsg:'CẢNH BÁO: Price Off làm tăng waste nếu nhập thêm. Chỉ áp dụng sau 15:00 để clearance hàng đang tồn.'},
+  multibuy:{mult:1.23,wrmult:1.47,warn:true,warnMsg:'CẢNH BÁO: Multi-buy rủi ro cao nhất (waste 15.4%). Không nên nhập thêm hàng.'},
+};
+
+function nowTime(){ return new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+function addMsg(role, html){
+  const chat=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;
+  if(role==='bot') d.innerHTML=`<div class="msg-meta"><span class="ai-dot-live" style="width:5px;height:5px"></span>Fresh Advisor · ${nowTime()}</div><div class="bubble">${html}</div>`;
+  else d.innerHTML=`<div class="bubble">${html}</div><div class="msg-meta" style="justify-content:flex-end">${nowTime()}</div>`;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
+  return d;
+}
+function addTyping(){
+  return addMsg('bot','<div class="typing"><span></span><span></span><span></span></div>');
+}
+
+function runAnalysis(){
+  const sk=document.getElementById('sel-sku').value;
+  const st=document.getElementById('sel-store').value;
+  const inv=parseInt(document.getElementById('inp-inv').value)||0;
+  const sold=parseInt(document.getElementById('inp-sold').value)||0;
+  const wasted=parseInt(document.getElementById('inp-wasted').value)||0;
+  const dow=document.getElementById('sel-dow').value;
+  const promo=document.getElementById('sel-promo').value;
+
+  const sku=SKU_DATA[sk]; const store=STORE_DATA[st];
+  const pm=PROMO_DATA[promo]; const dm=DOW_MULT[dow];
+
+  addMsg('user',`Phân tích: <strong>${sku.name}</strong> · ${store.label}<br>Tồn kho: ${inv} · Bán: ${sold} · Hủy: ${wasted} · Ngày mai: ${DOW_LABEL[dow]} · Promo: ${promo}`);
+  const typ=addTyping();
+
+  const todWR=wasted+sold>0?wasted/(wasted+sold):0;
+  const todDOH=sold>0?inv/sold:99;
+  const expSold=Math.round(sku.avgSold*dm*store.sellMult*pm.mult);
+  const buf=sku.shelf===1?1.08:sku.shelf===2?1.18:1.28;
+  const orderQty=Math.max(0,Math.round(expSold*buf-inv));
+  const projWaste=Math.round(orderQty*(todWR*0.85*pm.wrmult));
+  const wasteVal=(projWaste*sku.cost).toLocaleString('vi-VN');
+  const wrCls=todWR>0.25?'danger':todWR>0.15?'warning':'good';
+  const dohCls=todDOH<0.5?'warning':todDOH>2?'warning':'good';
+  const dmNote=dm>1.05?'<span class="val-good">Ngày bán tốt</span>':dm<0.95?'<span class="val-danger">Ngày bán yếu, giảm nhập</span>':'Ngày bình thường';
+
+  setTimeout(()=>{
+    typ.remove();
+    addMsg('bot',`
+<strong>Phân tích KPI — ${sku.name}</strong>
+<div class="kpi-pills">
+  <span class="kpi-pill ${wrCls}">Waste Rate hôm nay: ${(todWR*100).toFixed(1)}%</span>
+  <span class="kpi-pill ${dohCls}">DOH: ${todDOH===99?'N/A':todDOH.toFixed(2)} ngày</span>
+  <span class="kpi-pill info">Shelf life: ${sku.shelf} ngày</span>
+  <span class="kpi-pill info">Tồn hiện tại: ${inv}</span>
+</div>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Dự báo bán được ngày mai</span><span class="rec-val val-good">${expSold} đơn vị</span></div>
+  <div class="rec-row-b"><span class="rec-key">Hệ số ngày ${DOW_LABEL[dow]}</span><span class="rec-val">${dm} × (${dmNote})</span></div>
+  <div class="rec-row-b"><span class="rec-key">Tồn kho hiện tại</span><span class="rec-val">${inv} đơn vị</span></div>
+  <div class="rec-row-b" style="border-top:1px solid rgba(0,212,170,.15);padding-top:4px"><span class="rec-key" style="color:#f0f4ff;font-weight:500">→ Đề xuất đặt thêm</span><span class="rec-val" style="color:#00d4aa;font-size:15px">${orderQty} đơn vị</span></div>
+  <div class="rec-row-b"><span class="rec-key">Waste dự báo</span><span class="rec-val val-warning">${projWaste} đơn vị (~${wasteVal} VND)</span></div>
+</div>
+<strong>Vận hành:</strong><br>
+• ${store.note}<br>
+• Bắt đầu markdown lúc <strong class="val-warning">${store.markdown_hr}:00</strong> (-15%) → ${store.markdown_hr+2}:00 (-30%) → ${store.markdown_hr+2}:00 (-50% clearance)<br>
+${pm.warn?`• <span class="val-danger">${pm.warnMsg}</span>`:'• Promo hiện tại phù hợp với chiến lược giảm waste'}
+`);
+  },900);
+}
+
+function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  const q=inp.value.trim(); if(!q)return;
+  inp.value=''; quickAsk(q);
+}
+
+function quickAsk(q){
+  addMsg('user',q);
+  const typ=addTyping();
+  const ql=q.toLowerCase();
+  let resp='';
+
+  if(ql.includes('markdown')||ql.includes('giảm giá')||ql.includes('khung giờ')){
+    resp=`<strong>Thời điểm Markdown Hải sản tối ưu:</strong>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Residential (tan làm 17–19h)</span><span class="rec-val val-warning">17:00 bắt đầu</span></div>
+  <div class="rec-row-b"><span class="rec-key">Neighborhood (chợ 9–11h & 16–18h)</span><span class="rec-val val-warning">10:00 & 16:00</span></div>
+  <div class="rec-row-b"><span class="rec-key">High-street (trưa & tối)</span><span class="rec-val val-warning">12:00 & 18:00</span></div>
+  <div class="rec-row-b"><span class="rec-key">Tourist (khách tối)</span><span class="rec-val val-warning">19:00</span></div>
+</div>
+<strong>Quy tắc mức giảm:</strong><br>
+• Còn &gt;6h → giá thường<br>
+• Còn 3–6h → giảm <span class="val-warning">15%</span><br>
+• Còn 1–3h → giảm <span class="val-warning">30%</span><br>
+• Còn &lt;1h → giảm <span class="val-danger">50% clearance</span> — không để sang ngày`;
+  } else if(ql.includes('residential')||ql.includes('tourist')){
+    resp=`<strong>Residential vs Tourist — Hải sản:</strong>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Waste rate</span><span class="rec-val"><span class="val-danger">Residential 19.9%</span> vs <span class="val-good">Tourist 16.8%</span></span></div>
+  <div class="rec-row-b"><span class="rec-key">CSRB</span><span class="rec-val">Residential 2.45× vs Tourist 2.25×</span></div>
+  <div class="rec-row-b"><span class="rec-key">Sell-through</span><span class="rec-val">Residential 44.7% vs Tourist 47.6%</span></div>
+  <div class="rec-row-b"><span class="rec-key">Diện tích TB</span><span class="rec-val">Residential ~133m² vs Tourist ~165m²</span></div>
+</div>
+<strong>Hành động:</strong> Residential giảm đặt 40%, giao 4×/tuần. Tourist duy trì, tăng nhẹ cuối tuần.`;
+  } else if(ql.includes('csrb')){
+    resp=`<strong>CSRB = (Tồn đầu kỳ + Nhập) ÷ Số lượng bán</strong><br><br>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Shelf 1 ngày (Cá basa, Tôm)</span><span class="rec-val val-good">Mục tiêu: 1.2–1.4×</span></div>
+  <div class="rec-row-b"><span class="rec-key">Shelf 2–3 ngày</span><span class="rec-val val-good">Mục tiêu: 1.4–1.6×</span></div>
+  <div class="rec-row-b"><span class="rec-key">Hiện tại toàn hệ thống</span><span class="rec-val val-danger">2.35–2.45× — quá cao</span></div>
+</div>
+Mỗi 0.1 giảm CSRB ≈ tiết kiệm ~300–400 triệu VND/năm cho Hải sản.`;
+  } else if(ql.includes('tết')||ql.includes('tet')){
+    resp=`<strong>Chiến lược nhập hàng dịp Tết (tuần 5–8):</strong><br><br>
+Waste rate Tết đỉnh <span class="val-danger">27.5%</span> — vì nhập nhiều nhưng khách giảm mua hàng tươi.<br><br>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Trước Tết 1 tuần</span><span class="rec-val val-danger">Giảm đặt 40%</span></div>
+  <div class="rec-row-b"><span class="rec-key">Mùng 1–3</span><span class="rec-val val-danger">Không nhập shelf 1 ngày</span></div>
+  <div class="rec-row-b"><span class="rec-key">Mùng 4–7</span><span class="rec-val val-warning">Tăng dần 50% so mức Tết</span></div>
+</div>
+Ưu tiên: Cá điêu hồng, Chẻm chép (shelf 2–3 ngày) hơn Cá basa, Tôm sú.`;
+  } else if(ql.includes('promotion')||ql.includes('promo')||ql.includes('khuyến mãi')){
+    resp=`<strong>Đánh giá promotion theo waste rate:</strong>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Bundle</span><span class="rec-val val-good">8.6% — TỐT NHẤT</span></div>
+  <div class="rec-row-b"><span class="rec-key">Không promo (baseline)</span><span class="rec-val">10.5%</span></div>
+  <div class="rec-row-b"><span class="rec-key">Price Off</span><span class="rec-val val-warning">15.0% — chỉ dùng clearance sau 15:00</span></div>
+  <div class="rec-row-b"><span class="rec-key">Multi-buy</span><span class="rec-val val-danger">15.4% — tránh dùng</span></div>
+</div>
+<strong>Quy tắc vàng:</strong> Không bao giờ nhập thêm hàng chỉ vì có promotion Price Off hay Multi-buy.`;
+  } else if(ql.includes('doh')){
+    resp=`<strong>DOH (Days on Hand)</strong> = Tồn cuối kỳ ÷ Qty bán TB/ngày<br><br>
+<div class="rec-block">
+  <div class="rec-row-b"><span class="rec-key">Shelf 1 ngày — DOH mục tiêu</span><span class="rec-val val-good">0.3–0.6 ngày</span></div>
+  <div class="rec-row-b"><span class="rec-key">Shelf 2–3 ngày — DOH mục tiêu</span><span class="rec-val val-good">0.5–1.0 ngày</span></div>
+  <div class="rec-row-b"><span class="rec-key">Hiện tại Hải sản</span><span class="rec-val val-danger">0.87–0.95 ngày — quá cao</span></div>
+</div>
+DOH > shelf life = chắc chắn có waste. Vùng an toàn: DOH = 30–60% shelf life.`;
+  } else {
+    callClaude(q, typ); return;
+  }
+  setTimeout(()=>{ typ.remove(); addMsg('bot',resp); },700);
+}
+
+async function callClaude(q, typDiv){
+  const ctx=`Bạn là Fresh Advisor — AI tư vấn nhập hàng Hải sản WinMart+ Đà Nẵng 2024.
+Dữ liệu thực: Waste rate Hải sản 18.9%, CSRB 2.35×, shelf life Tôm/Cá basa 1 ngày, Cua/Cá ngừ 2 ngày.
+Residential waste 19.9%, Tourist 16.8%. Bundle promo waste 8.6%, Price Off 15.0%.
+Thứ Hai/Tư/Sáu waste 21.5%, cuối tuần 16.5%. Tiết kiệm tiềm năng 8.44 tỷ VND/năm.
+Trả lời ngắn gọn, bằng tiếng Việt, dùng số liệu cụ thể, dưới 120 từ.`;
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:ctx,messages:[{role:'user',content:q}]})});
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('')||'Không thể xử lý.';
+    typDiv.remove(); addMsg('bot',text.replace(/\n/g,'<br>'));
+  } catch(e){ typDiv.remove(); addMsg('bot','Lỗi kết nối. Hãy thử lại hoặc dùng nút gợi ý nhanh phía trên.'); }
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+const panelTitles = {
+  overview:'Tổng quan Waste Rate', metrictree:'Metric Tree / Phân rã KPI',
+  product:'Sản phẩm & SKU Analysis', promotion:'Hiệu quả Giảm giá',
+  store:'Cửa hàng & Loại cửa hàng', chatbot:'AI Order Advisor'
+};
+const panelInited = {};
+
+function showPanel(id, navEl) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  if(navEl) navEl.classList.add('active');
+  document.getElementById('page-title').textContent = panelTitles[id];
+  if(window.innerWidth < 900) closeSidebar();
+
+  if(!panelInited[id]) {
+    panelInited[id] = true;
+    setTimeout(()=>{
+      if(id==='overview') initOverview();
+      else if(id==='metrictree') initMetricTree();
+      else if(id==='product') initProduct();
+      else if(id==='promotion') initPromotion();
+      else if(id==='store') initStore();
+    }, 60);
+  }
+}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// Init first panel
+window.addEventListener('DOMContentLoaded', ()=>{
+  panelInited['overview'] = true;
+  setTimeout(initOverview, 100);
+});
+</script>
+</body>
+</html>
